@@ -3,7 +3,12 @@
     "allow": [
       "Bash(npm -v)",
       "Bash(which brew *)",
-      "Bash(brew install *)"
+      "Bash(brew install *)",
+      "Bash(git mv *)",
+      "Bash(mkdir -p \"/Users/komiyamaakira/Desktop/growers_application_1/src/app/\\(app\\)/customers/new\" *)",
+      "Bash(mkdir -p \"/Users/komiyamaakira/Desktop/growers_application_1/src/app/\\(app\\)/cultivation/new\" *)",
+      "Bash(lsof -i :3000 -sTCP:LISTEN)",
+      "Bash(kill -9 55735)"
     ]
   }
 }

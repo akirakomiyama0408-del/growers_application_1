@@ -1,0 +1,432 @@
+// 農園手帖 データベーススキーマ
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== 認証・ユーザー ====================
+
+enum Role {
+  ADMIN // 管理者
+  STAFF // スタッフ
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String // bcryptハッシュ
+  role      Role     @default(STAFF)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  visitRecords     VisitRecord[]
+  workLogs         WorkLog[]
+  fertilizations   FertilizationRecord[]
+  pestDiseases     PestDiseaseRecord[]
+  pesticides       PesticideApplication[]
+  harvestRecords   HarvestRecord[]
+  salesRecords     SalesRecord[]
+  costRecords      CostRecord[]
+  photos           Photo[]
+
+  @@map("users")
+}
+
+// ==================== マスタデータ (プルダウン選択肢) ====================
+
+enum FieldType {
+  SOIL // 土耕栽培
+  RAISED_BED // 高設栽培
+}
+
+// 圃場・ハウス区画マスタ
+model Field {
+  id        String    @id @default(cuid())
+  name      String // 区画名 (例: 第一ハウスA区画)
+  type      FieldType @default(RAISED_BED)
+  areaSqm   Float? // 面積(平米)
+  location  String? // 所在地・位置メモ
+  memo      String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  cultivationCycles CultivationCycle[]
+
+  @@map("fields")
+}
+
+// 栽培品種マスタ
+model Variety {
+  id          String   @id @default(cuid())
+  name        String   @unique // 品種名 (例: 紅ほっぺ、あきひめ)
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  cultivationCycles CultivationCycle[]
+
+  @@map("varieties")
+}
+
+// 販売先マスタ
+model Destination {
+  id        String   @id @default(cuid())
+  name      String   @unique // 販売先名 (例: JA直売所、道の駅、個人宅配)
+  category  String? // 分類 (例: 卸売、直売、EC)
+  memo      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  salesRecords SalesRecord[]
+
+  @@map("destinations")
+}
+
+// 作業種別マスタ (作業日誌のプルダウン用)
+model WorkType {
+  id        String   @id @default(cuid())
+  name      String   @unique // 例: 灌水、整枝、摘果、誘引、除草、収穫
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  workLogs WorkLog[]
+
+  @@map("work_types")
+}
+
+// 肥料マスタ
+model FertilizerProduct {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  type         String? // 例: 化成肥料、有機肥料、液肥
+  memo         String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  fertilizations FertilizationRecord[]
+
+  @@map("fertilizer_products")
+}
+
+// 農薬マスタ
+model PesticideProduct {
+  id               String   @id @default(cuid())
+  name             String   @unique // 農薬名
+  activeIngredient String? // 有効成分
+  targetPest       String? // 適用病害虫
+  defaultDilution  String? // 標準希釈倍率
+  phiDays          Int? // 収穫前日数 (Pre-Harvest Interval)
+  memo             String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  applications PesticideApplication[]
+
+  @@map("pesticide_products")
+}
+
+// ==================== 顧客 ====================
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String // お客様名(農園名・氏名)
+  kana      String? // ふりがな
+  phone     String?
+  email     String?
+  postalCode String?
+  address   String?
+  memo      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fields            Field[]
+  cultivationCycles CultivationCycle[]
+  visitRecords      VisitRecord[]
+
+  @@map("customers")
+}
+
+// ==================== 訪問記録 ====================
+
+model VisitRecord {
+  id         String   @id @default(cuid())
+  visitDate  DateTime
+  purpose    String // 訪問目的 (プルダウン+自由入力): 定期巡回, 資材提案, 相談対応, クレーム対応 等
+  content    String // 訪問内容・ヒアリング内容
+  nextAction String? // 次回アクション
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  staffId String
+  staff   User   @relation(fields: [staffId], references: [id])
+
+  @@index([customerId])
+  @@map("visit_records")
+}
+
+// ==================== 栽培サイクル (作付) ====================
+
+enum CultivationStatus {
+  SEEDLING // 育苗
+  PLANTED // 定植
+  GROWING // 生育中
+  HARVESTING // 収穫中
+  FINISHED // 終了
+}
+
+// 育苗〜収穫終了までの一つの作付単位。顧客×圃場×品種×season をまとめるハブ
+model CultivationCycle {
+  id            String            @id @default(cuid())
+  season        String // 作期 (例: 2026年度冬春作)
+  status        CultivationStatus @default(SEEDLING)
+  seedlingDate  DateTime? // 育苗開始日
+  plantingDate  DateTime? // 定植日
+  plannedEndDate DateTime?
+  memo          String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  fieldId String
+  field   Field  @relation(fields: [fieldId], references: [id])
+
+  varietyId String
+  variety   Variety @relation(fields: [varietyId], references: [id])
+
+  workLogs       WorkLog[]
+  fertilizations FertilizationRecord[]
+  pestDiseases   PestDiseaseRecord[]
+  pesticides     PesticideApplication[]
+  harvestRecords HarvestRecord[]
+  salesRecords   SalesRecord[]
+  costRecords    CostRecord[]
+  photos         Photo[]
+
+  @@index([customerId])
+  @@index([fieldId])
+  @@map("cultivation_cycles")
+}
+
+// ==================== 作業日誌 ====================
+
+model WorkLog {
+  id        String   @id @default(cuid())
+  workDate  DateTime
+  content   String? // 作業内容メモ
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cultivationCycleId String
+  cultivationCycle   CultivationCycle @relation(fields: [cultivationCycleId], references: [id], onDelete: Cascade)
+
+  workTypeId String
+  workType   WorkType @relation(fields: [workTypeId], references: [id])
+
+  staffId String
+  staff   User   @relation(fields: [staffId], references: [id])
+
+  photos Photo[]
+
+  @@index([cultivationCycleId])
+  @@map("work_logs")
+}
+
+// ==================== 肥培管理 ====================
+
+model FertilizationRecord {
+  id       String   @id @default(cuid())
+  date     DateTime
+  amount   String? // 施用量 (例: 10kg/10a)
+  method   String? // 施用方法 (例: 元肥, 追肥, 液肥灌注)
+  memo     String?
+  createdAt DateTime @default(now())
+
+  cultivationCycleId String
+  cultivationCycle   CultivationCycle @relation(fields: [cultivationCycleId], references: [id], onDelete: Cascade)
+
+  fertilizerProductId String
+  fertilizerProduct   FertilizerProduct @relation(fields: [fertilizerProductId], references: [id])
+
+  staffId String
+  staff   User   @relation(fields: [staffId], references: [id])
+
+  @@index([cultivationCycleId])
+  @@map("fertilization_records")
+}
+
+// ==================== 病害虫記録 ====================
+
+enum PestDiseaseType {
+  DISEASE // 病気
+  PEST // 害虫
+}
+
+model PestDiseaseRecord {
+  id          String          @id @default(cuid())
+  date        DateTime
+  type        PestDiseaseType
+  name        String // 病害虫名 (例: うどんこ病、ハダニ)
+  severity    String? // 発生程度 (軽微/中程度/重度 等、プルダウン+自由入力)
+  action      String? // 対応内容
+  memo        String?
+  createdAt   DateTime        @default(now())
+
+  cultivationCycleId String
+  cultivationCycle   CultivationCycle @relation(fields: [cultivationCycleId], references: [id], onDelete: Cascade)
+
+  staffId String
+  staff   User   @relation(fields: [staffId], references: [id])
+
+  photos Photo[]
+
+  @@index([cultivationCycleId])
+  @@map("pest_disease_records")
+}
+
+// ==================== 農薬使用履歴 ====================
+
+model PesticideApplication {
+  id           String   @id @default(cuid())
+  date         DateTime
+  dilution     String? // 希釈倍率
+  amount       String? // 散布量
+  targetPest   String? // 対象病害虫
+  weather      String? // 散布時天候
+  createdAt    DateTime @default(now())
+
+  cultivationCycleId String
+  cultivationCycle   CultivationCycle @relation(fields: [cultivationCycleId], references: [id], onDelete: Cascade)
+
+  pesticideProductId String
+  pesticideProduct   PesticideProduct @relation(fields: [pesticideProductId], references: [id])
+
+  staffId String
+  staff   User   @relation(fields: [staffId], references: [id])
+
+  @@index([cultivationCycleId])
+  @@map("pesticide_applications")
+}
+
+// ==================== 収穫記録 ====================
+
+model HarvestRecord {
+  id          String   @id @default(cuid())
+  date        DateTime
+  amountKg    Float // 収穫量(kg)
+  grade       String? // 等級 (プルダウン+自由入力: 秀/優/良/規格外 等)
+  brixLevel   Float? // 糖度(Brix)
+  memo        String?
+  createdAt   DateTime @default(now())
+
+  cultivationCycleId String
+  cultivationCycle   CultivationCycle @relation(fields: [cultivationCycleId], references: [id], onDelete: Cascade)
+
+  staffId String
+  staff   User   @relation(fields: [staffId], references: [id])
+
+  photos       Photo[]
+  salesRecords SalesRecord[]
+
+  @@index([cultivationCycleId])
+  @@map("harvest_records")
+}
+
+// ==================== 販売記録 (トレーサビリティ含む) ====================
+
+model SalesRecord {
+  id          String   @id @default(cuid())
+  date        DateTime
+  lotNumber   String? // 出荷ロット番号 (トレーサビリティ)
+  quantityKg  Float // 販売数量(kg)
+  unitPrice   Float // 単価(円/kg)
+  totalAmount Float // 合計金額(円)
+  memo        String?
+  createdAt   DateTime @default(now())
+
+  cultivationCycleId String
+  cultivationCycle   CultivationCycle @relation(fields: [cultivationCycleId], references: [id], onDelete: Cascade)
+
+  harvestRecordId String?
+  harvestRecord   HarvestRecord? @relation(fields: [harvestRecordId], references: [id])
+
+  destinationId String
+  destination   Destination @relation(fields: [destinationId], references: [id])
+
+  staffId String
+  staff   User   @relation(fields: [staffId], references: [id])
+
+  @@index([cultivationCycleId])
+  @@map("sales_records")
+}
+
+// ==================== コスト・収支管理 ====================
+
+enum CostCategory {
+  MATERIAL // 資材費
+  LABOR // 人件費
+  UTILITY // 光熱費
+  OTHER // その他
+}
+
+model CostRecord {
+  id        String       @id @default(cuid())
+  date      DateTime
+  category  CostCategory
+  item      String // 費目名 (例: 苗代、肥料代、防除委託費)
+  amount    Float // 金額(円)
+  memo      String?
+  createdAt DateTime     @default(now())
+
+  cultivationCycleId String
+  cultivationCycle   CultivationCycle @relation(fields: [cultivationCycleId], references: [id], onDelete: Cascade)
+
+  staffId String
+  staff   User   @relation(fields: [staffId], references: [id])
+
+  @@index([cultivationCycleId])
+  @@map("cost_records")
+}
+
+// ==================== 写真添付 ====================
+
+model Photo {
+  id        String   @id @default(cuid())
+  url       String // Vercel Blob URL
+  caption   String?
+  createdAt DateTime @default(now())
+
+  uploadedById String
+  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
+
+  // 添付先 (いずれか1つに紐づく)
+  cultivationCycleId String?
+  cultivationCycle   CultivationCycle? @relation(fields: [cultivationCycleId], references: [id], onDelete: Cascade)
+
+  workLogId String?
+  workLog   WorkLog? @relation(fields: [workLogId], references: [id], onDelete: Cascade)
+
+  pestDiseaseRecordId String?
+  pestDiseaseRecord   PestDiseaseRecord? @relation(fields: [pestDiseaseRecordId], references: [id], onDelete: Cascade)
+
+  harvestRecordId String?
+  harvestRecord   HarvestRecord? @relation(fields: [harvestRecordId], references: [id], onDelete: Cascade)
+
+  @@map("photos")
+}

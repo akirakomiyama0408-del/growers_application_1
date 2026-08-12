@@ -1,0 +1,18 @@
+import type { ReactNode } from "react";
+import { Sidebar, MobileNav } from "@/components/layout/Sidebar";
+import { Header } from "@/components/layout/Header";
+
+export default function AppLayout({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex min-h-screen w-full">
+      <Sidebar />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Header />
+        <MobileNav />
+        <main className="flex-1 bg-cream-50 px-4 py-6 md:px-8 md:py-8">
+          <div className="mx-auto w-full max-w-6xl">{children}</div>
+        </main>
+      </div>
+    </div>
+  );
+}
