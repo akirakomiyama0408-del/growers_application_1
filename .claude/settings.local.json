@@ -8,7 +8,19 @@
       "Bash(mkdir -p \"/Users/komiyamaakira/Desktop/growers_application_1/src/app/\\(app\\)/customers/new\" *)",
       "Bash(mkdir -p \"/Users/komiyamaakira/Desktop/growers_application_1/src/app/\\(app\\)/cultivation/new\" *)",
       "Bash(lsof -i :3000 -sTCP:LISTEN)",
-      "Bash(kill -9 55735)"
+      "Bash(kill -9 55735)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(gh auth *)",
+      "Bash(nohup gh auth login --hostname github.com --git-protocol https --web)",
+      "Bash(disown)",
+      "Read(//tmp/**)",
+      "Bash(gh repo *)",
+      "Bash(openssl rand *)",
+      "Bash(git check-ignore *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(curl -s \"https://growers-application-1.vercel.app/api/setup?token=E6IYjef0xTqJZHdFw7hZ2s5LZoCdlr6ZO0WuKQBv9ck=\")"
     ]
   }
 }
