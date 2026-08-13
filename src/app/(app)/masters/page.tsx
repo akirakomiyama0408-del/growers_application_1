@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/session";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { Button, LinkButton } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import {
   createVariety,
@@ -135,6 +135,18 @@ export default async function MastersPage() {
           />
         </Card>
       </div>
+
+      <Card className="mt-6">
+        <CardHeader
+          title="お客様の一括登録(CSV/Excel)"
+          description="既存の顧客名簿をCSVまたはExcelファイルからまとめて取り込みます。主に導入時など、一度だけ行う作業です。"
+          action={
+            <LinkButton href="/customers/import" variant="secondary" size="sm">
+              一括登録ページへ
+            </LinkButton>
+          }
+        />
+      </Card>
     </div>
   );
 }
