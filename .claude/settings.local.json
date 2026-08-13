@@ -20,7 +20,19 @@
       "Bash(git check-ignore *)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(curl -s \"https://growers-application-1.vercel.app/api/setup?token=E6IYjef0xTqJZHdFw7hZ2s5LZoCdlr6ZO0WuKQBv9ck=\")"
+      "Bash(curl -s \"https://growers-application-1.vercel.app/api/setup?token=E6IYjef0xTqJZHdFw7hZ2s5LZoCdlr6ZO0WuKQBv9ck=\")",
+      "Bash(find /private/tmp/claude-501 -newer /Users/komiyamaakira/Desktop/growers_application_1/package.json -type f \\\\\\( -iname \"*.png\" -o -iname \"*.jpg\" -o -iname \"*.jpeg\" -o -iname \"*.webp\" \\\\\\) 2>/dev/null | head -20 *)",
+      "Bash(find /var/folders -maxdepth 8 -newer /Users/komiyamaakira/Desktop/growers_application_1/package.json -type f \\\\\\( -iname \"*.png\" -o -iname \"*.jpg\" -o -iname \"*.jpeg\" \\\\\\) 2>/dev/null | head -20)",
+      "Bash(find /Users/komiyamaakira/Desktop -maxdepth 3 -newer /Users/komiyamaakira/Desktop/growers_application_1/package.json -type f \\\\\\( -iname \"*.png\" -o -iname \"*.jpg\" -o -iname \"*.jpeg\" \\\\\\) 2>/dev/null *)",
+      "Bash(cp \"/Users/komiyamaakira/Desktop/BUSINESS_AGENT/Mywork/logo3_pc.png\" /Users/komiyamaakira/Desktop/growers_application_1/public/logo.png)",
+      "Bash(sips -Z 400 /Users/komiyamaakira/Desktop/growers_application_1/public/logo.png)",
+      "Bash(sips -g pixelWidth -g pixelHeight public/logo.png)",
+      "Bash(sips -g pixelWidth -g pixelHeight -g format /Users/komiyamaakira/Desktop/growers_application_1/public/logo.png)",
+      "Bash(npm ls *)",
+      "Bash(curl -s -o /tmp/test_logo.png -w \"%{http_code} %{size_download}\\\\n\" http://localhost:3000/logo.png)",
+      "Bash(python3 -c ' *)",
+      "Bash(xxd /Users/komiyamaakira/Desktop/growers_application_1/public/templates/customers_template.csv)",
+      "Bash(curl -s \"https://growers-application-1.vercel.app/api/seed-visitors?token=E6IYjef0xTqJZHdFw7hZ2s5LZoCdlr6ZO0WuKQBv9ck=\")"
     ]
   }
 }
