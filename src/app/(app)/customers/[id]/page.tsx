@@ -7,6 +7,7 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Input, Label, Select, Textarea } from "@/components/ui/Field";
+import { SelectOrOther } from "@/components/ui/SelectOrOther";
 import { RecordRow } from "@/components/ui/RecordRow";
 import { formatDate, toDateInputValue } from "@/lib/utils";
 import {
@@ -42,7 +43,7 @@ export default async function CustomerDetailPage({
       fields: { orderBy: { createdAt: "desc" } },
       visitRecords: {
         orderBy: { visitDate: "desc" },
-        include: { staff: true },
+        include: { staff: true, visitor: true },
       },
       cultivationCycles: {
         orderBy: { createdAt: "desc" },
@@ -53,10 +54,16 @@ export default async function CustomerDetailPage({
 
   if (!customer) notFound();
 
-  const varieties = await prisma.variety.findMany({
-    where: { isActive: true },
-    orderBy: { name: "asc" },
-  });
+  const [varieties, visitors] = await Promise.all([
+    prisma.variety.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.visitor.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   const addField = createField.bind(null, customer.id);
   const addVisit = createVisitRecord.bind(null, customer.id);
@@ -342,6 +349,15 @@ export default async function CustomerDetailPage({
               <Input id="visitDate" name="visitDate" type="date" required />
             </div>
             <div>
+              <Label required>訪問者</Label>
+              <SelectOrOther
+                name="visitorId"
+                options={visitors.map((v) => ({ value: v.id, label: v.name }))}
+                placeholder="訪問者名を入力"
+                required
+              />
+            </div>
+            <div>
               <Label htmlFor="purpose" required>
                 訪問目的
               </Label>
@@ -386,7 +402,8 @@ export default async function CustomerDetailPage({
                     <div className="flex items-center gap-2">
                       <Badge tone="strawberry">{visit.purpose}</Badge>
                       <span className="text-xs text-ink-300">
-                        {formatDate(visit.visitDate)} ・ {visit.staff.name}
+                        {formatDate(visit.visitDate)} ・ 訪問者:{" "}
+                        {visit.visitor?.name ?? visit.staff.name}
                       </span>
                     </div>
                     <p className="mt-2 whitespace-pre-wrap text-sm text-ink-500">
@@ -410,6 +427,19 @@ export default async function CustomerDetailPage({
                         name="visitDate"
                         type="date"
                         defaultValue={toDateInputValue(visit.visitDate)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label required>訪問者</Label>
+                      <SelectOrOther
+                        name="visitorId"
+                        options={visitors.map((v) => ({
+                          value: v.id,
+                          label: v.name,
+                        }))}
+                        defaultValue={visit.visitorId ?? undefined}
+                        placeholder="訪問者名を入力"
                         required
                       />
                     </div>

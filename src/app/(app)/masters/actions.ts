@@ -117,3 +117,18 @@ export async function togglePesticide(id: string, isActive: boolean) {
   await prisma.pesticideProduct.update({ where: { id }, data: { isActive } });
   revalidatePath("/masters");
 }
+
+// ---- 訪問者 ----
+export async function createVisitor(formData: FormData) {
+  await guard();
+  const name = str(formData, "name");
+  if (!name) return;
+  await prisma.visitor.create({ data: { name } });
+  revalidatePath("/masters");
+}
+
+export async function toggleVisitor(id: string, isActive: boolean) {
+  await guard();
+  await prisma.visitor.update({ where: { id }, data: { isActive } });
+  revalidatePath("/masters");
+}

@@ -28,6 +28,20 @@ function optFloat(formData: FormData, key: string): number | null {
   return Number.isNaN(n) ? null : n;
 }
 
+// SelectOrOther は「その他」選択時に自由入力された氏名をそのまま送信するため、
+// 既存の訪問者マスタIDと一致しなければ新規メンバーとして自動登録して解決する
+async function resolveVisitorId(rawValue: string): Promise<string | null> {
+  if (!rawValue) return null;
+  const existing = await prisma.visitor.findUnique({ where: { id: rawValue } });
+  if (existing) return existing.id;
+  const visitor = await prisma.visitor.upsert({
+    where: { name: rawValue },
+    create: { name: rawValue },
+    update: {},
+  });
+  return visitor.id;
+}
+
 export async function createCustomer(formData: FormData) {
   await requireUser();
   const name = str(formData, "name");
@@ -241,12 +255,14 @@ export async function createVisitRecord(customerId: string, formData: FormData) 
   const visitDate = str(formData, "visitDate");
   const purpose = str(formData, "purpose");
   const content = str(formData, "content");
-  if (!visitDate || !purpose || !content) return;
+  const visitorId = await resolveVisitorId(str(formData, "visitorId"));
+  if (!visitDate || !purpose || !content || !visitorId) return;
 
   await prisma.visitRecord.create({
     data: {
       customerId,
       staffId: user.id,
+      visitorId,
       visitDate: new Date(visitDate),
       purpose,
       content,
@@ -266,7 +282,8 @@ export async function updateVisitRecord(
   const visitDate = str(formData, "visitDate");
   const purpose = str(formData, "purpose");
   const content = str(formData, "content");
-  if (!visitDate || !purpose || !content) return;
+  const visitorId = await resolveVisitorId(str(formData, "visitorId"));
+  if (!visitDate || !purpose || !content || !visitorId) return;
 
   await prisma.visitRecord.update({
     where: { id: visitId },
@@ -274,6 +291,7 @@ export async function updateVisitRecord(
       visitDate: new Date(visitDate),
       purpose,
       content,
+      visitorId,
       nextAction: optStr(formData, "nextAction"),
     },
   });

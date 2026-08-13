@@ -85,6 +85,19 @@ async function main() {
     skipDuplicates: true,
   });
 
+  await prisma.visitor.createMany({
+    data: [
+      { name: "江﨑専務" },
+      { name: "坂田" },
+      { name: "加藤" },
+      { name: "小寺" },
+      { name: "杉原" },
+      { name: "藤田" },
+      { name: "小宮山" },
+    ],
+    skipDuplicates: true,
+  });
+
   console.log(`シードデータを投入しました。管理者アカウント: ${adminEmail} / ${adminPassword}`);
 }
 

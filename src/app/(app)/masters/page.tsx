@@ -16,18 +16,21 @@ import {
   toggleFertilizer,
   createPesticide,
   togglePesticide,
+  createVisitor,
+  toggleVisitor,
 } from "./actions";
 
 export default async function MastersPage() {
   await requireUser();
 
-  const [varieties, destinations, workTypes, fertilizers, pesticides] =
+  const [varieties, destinations, workTypes, fertilizers, pesticides, visitors] =
     await Promise.all([
       prisma.variety.findMany({ orderBy: { createdAt: "desc" } }),
       prisma.destination.findMany({ orderBy: { createdAt: "desc" } }),
       prisma.workType.findMany({ orderBy: { createdAt: "desc" } }),
       prisma.fertilizerProduct.findMany({ orderBy: { createdAt: "desc" } }),
       prisma.pesticideProduct.findMany({ orderBy: { createdAt: "desc" } }),
+      prisma.visitor.findMany({ orderBy: { createdAt: "desc" } }),
     ]);
 
   return (
@@ -80,6 +83,17 @@ export default async function MastersPage() {
             </Button>
           </form>
           <MasterList items={workTypes} onToggle={toggleWorkType} />
+        </Card>
+
+        <Card>
+          <CardHeader title="訪問者" description="訪問記録のプルダウン(社内メンバー)" />
+          <form action={createVisitor} className="mb-4 flex gap-2">
+            <Input name="name" placeholder="氏名" required />
+            <Button type="submit" size="sm" className="shrink-0">
+              追加
+            </Button>
+          </form>
+          <MasterList items={visitors} onToggle={toggleVisitor} />
         </Card>
 
         <Card>
