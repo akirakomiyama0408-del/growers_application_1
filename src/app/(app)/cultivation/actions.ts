@@ -73,6 +73,39 @@ export async function updateCycleStatus(cycleId: string, formData: FormData) {
   revalidatePath("/cultivation");
 }
 
+export async function updateCultivationCycleInfo(
+  cycleId: string,
+  formData: FormData
+) {
+  await requireUser();
+  const fieldId = str(formData, "fieldId");
+  const varietyId = str(formData, "varietyId");
+  const season = str(formData, "season");
+  const status = str(formData, "status") as CultivationStatus;
+  if (!fieldId || !varietyId || !season || !status) return;
+
+  const seedlingDate = optStr(formData, "seedlingDate");
+  const plantingDate = optStr(formData, "plantingDate");
+
+  const cycle = await prisma.cultivationCycle.update({
+    where: { id: cycleId },
+    data: {
+      fieldId,
+      varietyId,
+      season,
+      status,
+      seedlingDate: seedlingDate ? new Date(seedlingDate) : null,
+      plantingDate: plantingDate ? new Date(plantingDate) : null,
+      memo: optStr(formData, "memo"),
+    },
+    select: { customerId: true },
+  });
+
+  revalidatePath(`/customers/${cycle.customerId}`);
+  revalidatePath(`/cultivation/${cycleId}`);
+  revalidatePath("/cultivation");
+}
+
 // ==================== 作業日誌 ====================
 
 export async function createWorkLog(cycleId: string, formData: FormData) {

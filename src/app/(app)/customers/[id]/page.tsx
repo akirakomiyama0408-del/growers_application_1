@@ -7,8 +7,15 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Input, Label, Select, Textarea } from "@/components/ui/Field";
-import { formatDate } from "@/lib/utils";
-import { createField, createVisitRecord } from "../actions";
+import { RecordRow } from "@/components/ui/RecordRow";
+import { formatDate, toDateInputValue } from "@/lib/utils";
+import {
+  createField,
+  updateField,
+  createVisitRecord,
+  updateVisitRecord,
+} from "../actions";
+import { updateCultivationCycleInfo } from "../../cultivation/actions";
 
 const statusLabel: Record<string, string> = {
   SEEDLING: "育苗",
@@ -45,6 +52,11 @@ export default async function CustomerDetailPage({
   });
 
   if (!customer) notFound();
+
+  const varieties = await prisma.variety.findMany({
+    where: { isActive: true },
+    orderBy: { name: "asc" },
+  });
 
   const addField = createField.bind(null, customer.id);
   const addVisit = createVisitRecord.bind(null, customer.id);
@@ -104,20 +116,58 @@ export default async function CustomerDetailPage({
           ) : (
             <ul className="mb-4 flex flex-col gap-1.5">
               {customer.fields.map((field) => (
-                <li
+                <RecordRow
                   key={field.id}
-                  className="flex items-center justify-between rounded-xl border border-ink-100 px-3 py-2"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-ink-500">
-                      {field.name}
-                    </p>
-                    <p className="text-xs text-ink-300">
-                      {fieldTypeLabel[field.type]}
-                      {field.areaSqm ? ` ・ ${field.areaSqm}㎡` : ""}
-                    </p>
-                  </div>
-                </li>
+                  summary={
+                    <div>
+                      <p className="text-sm font-medium text-ink-500">
+                        {field.name}
+                      </p>
+                      <p className="text-xs text-ink-300">
+                        {fieldTypeLabel[field.type]}
+                        {field.areaSqm ? ` ・ ${field.areaSqm}㎡` : ""}
+                      </p>
+                    </div>
+                  }
+                  editForm={
+                    <form
+                      action={updateField.bind(null, customer.id, field.id)}
+                      className="flex flex-col gap-2"
+                    >
+                      <Input
+                        name="name"
+                        defaultValue={field.name}
+                        placeholder="区画名 (例: 第一ハウスA)"
+                        required
+                      />
+                      <div className="flex gap-2">
+                        <Select
+                          name="type"
+                          defaultValue={field.type}
+                          className="w-32"
+                        >
+                          <option value="RAISED_BED">高設栽培</option>
+                          <option value="SOIL">土耕栽培</option>
+                        </Select>
+                        <Input
+                          name="areaSqm"
+                          type="number"
+                          step="0.1"
+                          defaultValue={field.areaSqm ?? ""}
+                          placeholder="面積(㎡)"
+                        />
+                      </div>
+                      <Input
+                        name="location"
+                        defaultValue={field.location ?? ""}
+                        placeholder="所在地・位置メモ(任意)"
+                      />
+                      <Button type="submit" size="sm" className="self-start">
+                        更新する
+                      </Button>
+                    </form>
+                  }
+                />
               ))}
             </ul>
           )}
@@ -172,20 +222,102 @@ export default async function CustomerDetailPage({
           ) : (
             <ul className="flex flex-col gap-1.5">
               {customer.cultivationCycles.map((cycle) => (
-                <li key={cycle.id}>
-                  <Link
-                    href={`/cultivation/${cycle.id}`}
-                    className="flex items-center justify-between rounded-xl border border-ink-100 px-3 py-2 hover:bg-cream-50"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-ink-500">
-                        {cycle.field.name} ・ {cycle.variety.name}
-                      </p>
-                      <p className="text-xs text-ink-300">{cycle.season}</p>
+                <RecordRow
+                  key={cycle.id}
+                  summary={
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <p className="text-sm font-medium text-ink-500">
+                          {cycle.field.name} ・ {cycle.variety.name}
+                        </p>
+                        <p className="text-xs text-ink-300">{cycle.season}</p>
+                      </div>
+                      <Badge tone="leaf">{statusLabel[cycle.status]}</Badge>
                     </div>
-                    <Badge tone="leaf">{statusLabel[cycle.status]}</Badge>
-                  </Link>
-                </li>
+                  }
+                  editForm={
+                    <div>
+                      <Link
+                        href={`/cultivation/${cycle.id}`}
+                        className="mb-3 inline-block text-xs font-medium text-strawberry-500 hover:underline"
+                      >
+                        作業日誌・収穫・販売などの詳細記録を見る →
+                      </Link>
+                      <form
+                        action={updateCultivationCycleInfo.bind(null, cycle.id)}
+                        className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                      >
+                        <div>
+                          <Label required>圃場・ハウス区画</Label>
+                          <Select
+                            name="fieldId"
+                            defaultValue={cycle.fieldId}
+                            required
+                          >
+                            {customer.fields.map((f) => (
+                              <option key={f.id} value={f.id}>
+                                {f.name}
+                              </option>
+                            ))}
+                          </Select>
+                        </div>
+                        <div>
+                          <Label required>栽培品種</Label>
+                          <Select
+                            name="varietyId"
+                            defaultValue={cycle.varietyId}
+                            required
+                          >
+                            {varieties.map((v) => (
+                              <option key={v.id} value={v.id}>
+                                {v.name}
+                              </option>
+                            ))}
+                          </Select>
+                        </div>
+                        <div>
+                          <Label required>作期</Label>
+                          <Input name="season" defaultValue={cycle.season} required />
+                        </div>
+                        <div>
+                          <Label>状態</Label>
+                          <Select name="status" defaultValue={cycle.status}>
+                            {Object.entries(statusLabel).map(([value, label]) => (
+                              <option key={value} value={value}>
+                                {label}
+                              </option>
+                            ))}
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>育苗開始日</Label>
+                          <Input
+                            name="seedlingDate"
+                            type="date"
+                            defaultValue={toDateInputValue(cycle.seedlingDate)}
+                          />
+                        </div>
+                        <div>
+                          <Label>定植日</Label>
+                          <Input
+                            name="plantingDate"
+                            type="date"
+                            defaultValue={toDateInputValue(cycle.plantingDate)}
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <Label>メモ</Label>
+                          <Textarea name="memo" defaultValue={cycle.memo ?? ""} />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <Button type="submit" size="sm">
+                            更新する
+                          </Button>
+                        </div>
+                      </form>
+                    </div>
+                  }
+                />
               ))}
             </ul>
           )}
@@ -247,27 +379,66 @@ export default async function CustomerDetailPage({
         ) : (
           <ul className="flex flex-col gap-2">
             {customer.visitRecords.map((visit) => (
-              <li
+              <RecordRow
                 key={visit.id}
-                className="rounded-xl border border-ink-100 px-4 py-3"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Badge tone="strawberry">{visit.purpose}</Badge>
-                    <span className="text-xs text-ink-300">
-                      {formatDate(visit.visitDate)} ・ {visit.staff.name}
-                    </span>
+                summary={
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Badge tone="strawberry">{visit.purpose}</Badge>
+                      <span className="text-xs text-ink-300">
+                        {formatDate(visit.visitDate)} ・ {visit.staff.name}
+                      </span>
+                    </div>
+                    <p className="mt-2 whitespace-pre-wrap text-sm text-ink-500">
+                      {visit.content}
+                    </p>
+                    {visit.nextAction && (
+                      <p className="mt-1 text-xs text-leaf-600">
+                        次回: {visit.nextAction}
+                      </p>
+                    )}
                   </div>
-                </div>
-                <p className="mt-2 whitespace-pre-wrap text-sm text-ink-500">
-                  {visit.content}
-                </p>
-                {visit.nextAction && (
-                  <p className="mt-1 text-xs text-leaf-600">
-                    次回: {visit.nextAction}
-                  </p>
-                )}
-              </li>
+                }
+                editForm={
+                  <form
+                    action={updateVisitRecord.bind(null, customer.id, visit.id)}
+                    className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                  >
+                    <div>
+                      <Label required>訪問日</Label>
+                      <Input
+                        name="visitDate"
+                        type="date"
+                        defaultValue={toDateInputValue(visit.visitDate)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label required>訪問目的</Label>
+                      <Select name="purpose" defaultValue={visit.purpose} required>
+                        <option value="定期巡回">定期巡回</option>
+                        <option value="資材提案">資材提案</option>
+                        <option value="栽培相談対応">栽培相談対応</option>
+                        <option value="クレーム対応">クレーム対応</option>
+                        <option value="その他">その他</option>
+                      </Select>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label required>訪問内容</Label>
+                      <Textarea name="content" defaultValue={visit.content} required />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label>次回アクション</Label>
+                      <Input name="nextAction" defaultValue={visit.nextAction ?? ""} />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Button type="submit" size="sm">
+                        更新する
+                      </Button>
+                    </div>
+                  </form>
+                }
+              />
             ))}
           </ul>
         )}

@@ -100,6 +100,28 @@ export async function createField(customerId: string, formData: FormData) {
   revalidatePath(`/customers/${customerId}`);
 }
 
+export async function updateField(
+  customerId: string,
+  fieldId: string,
+  formData: FormData
+) {
+  await requireUser();
+  const name = str(formData, "name");
+  if (!name) return;
+
+  await prisma.field.update({
+    where: { id: fieldId },
+    data: {
+      name,
+      type: (str(formData, "type") || "RAISED_BED") as "RAISED_BED" | "SOIL",
+      areaSqm: optFloat(formData, "areaSqm"),
+      location: optStr(formData, "location"),
+    },
+  });
+
+  revalidatePath(`/customers/${customerId}`);
+}
+
 // ==================== CSV / Excel 一括インポート ====================
 
 async function parseUploadedRows(file: File): Promise<string[][]> {
@@ -225,6 +247,30 @@ export async function createVisitRecord(customerId: string, formData: FormData) 
     data: {
       customerId,
       staffId: user.id,
+      visitDate: new Date(visitDate),
+      purpose,
+      content,
+      nextAction: optStr(formData, "nextAction"),
+    },
+  });
+
+  revalidatePath(`/customers/${customerId}`);
+}
+
+export async function updateVisitRecord(
+  customerId: string,
+  visitId: string,
+  formData: FormData
+) {
+  await requireUser();
+  const visitDate = str(formData, "visitDate");
+  const purpose = str(formData, "purpose");
+  const content = str(formData, "content");
+  if (!visitDate || !purpose || !content) return;
+
+  await prisma.visitRecord.update({
+    where: { id: visitId },
+    data: {
       visitDate: new Date(visitDate),
       purpose,
       content,
