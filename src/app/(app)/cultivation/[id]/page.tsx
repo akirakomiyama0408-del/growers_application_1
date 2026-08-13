@@ -13,16 +13,24 @@ import {
   formatCurrency,
   formatDate,
   formatNumber,
+  toDateInputValue,
 } from "@/lib/utils";
 import {
   updateCycleStatus,
   createWorkLog,
+  updateWorkLog,
   createFertilization,
+  updateFertilization,
   createPestDisease,
+  updatePestDisease,
   createPesticideApplication,
+  updatePesticideApplication,
   createHarvestRecord,
+  updateHarvestRecord,
   createSalesRecord,
+  updateSalesRecord,
   createCostRecord,
+  updateCostRecord,
   uploadPhoto,
 } from "../actions";
 
@@ -259,18 +267,58 @@ export default async function CultivationDetailPage({
         ) : (
           <ul className="flex flex-col gap-2">
             {cycle.workLogs.map((log) => (
-              <li key={log.id} className="rounded-xl border border-ink-100 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <Badge tone="leaf">{log.workType.name}</Badge>
-                  <span className="text-xs text-ink-300">
-                    {formatDate(log.workDate)} ・ {log.staff.name}
-                  </span>
-                </div>
-                {log.content && (
-                  <p className="mt-1.5 text-sm text-ink-500">{log.content}</p>
-                )}
-                <PhotoThumbs photos={log.photos} />
-              </li>
+              <RecordRow
+                key={log.id}
+                summary={
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Badge tone="leaf">{log.workType.name}</Badge>
+                      <span className="text-xs text-ink-300">
+                        {formatDate(log.workDate)} ・ {log.staff.name}
+                      </span>
+                    </div>
+                    {log.content && (
+                      <p className="mt-1.5 text-sm text-ink-500">{log.content}</p>
+                    )}
+                    <PhotoThumbs photos={log.photos} />
+                  </>
+                }
+                editForm={
+                  <form
+                    action={updateWorkLog.bind(null, cycle.id, log.id)}
+                    className="grid grid-cols-1 gap-3 sm:grid-cols-3"
+                  >
+                    <div>
+                      <Label required>作業日</Label>
+                      <Input
+                        name="workDate"
+                        type="date"
+                        defaultValue={toDateInputValue(log.workDate)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label required>作業種別</Label>
+                      <SelectOrOther
+                        name="workTypeId"
+                        options={workTypes.map((w) => ({ value: w.id, label: w.name }))}
+                        defaultValue={log.workTypeId}
+                        placeholder="作業種別を入力"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>内容メモ</Label>
+                      <Input name="content" defaultValue={log.content ?? ""} placeholder="任意" />
+                    </div>
+                    <div className="sm:col-span-3">
+                      <Button type="submit" size="sm">
+                        更新する
+                      </Button>
+                    </div>
+                  </form>
+                }
+              />
             ))}
           </ul>
         )}
@@ -330,17 +378,76 @@ export default async function CultivationDetailPage({
         ) : (
           <ul className="flex flex-col gap-2">
             {cycle.fertilizations.map((f) => (
-              <li key={f.id} className="rounded-xl border border-ink-100 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <Badge tone="leaf">{f.fertilizerProduct.name}</Badge>
-                  <span className="text-xs text-ink-300">
-                    {formatDate(f.date)} ・ {f.staff.name}
-                  </span>
-                </div>
-                <p className="mt-1.5 text-sm text-ink-500">
-                  {[f.amount, f.method].filter(Boolean).join(" ・ ") || "-"}
-                </p>
-              </li>
+              <RecordRow
+                key={f.id}
+                summary={
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Badge tone="leaf">{f.fertilizerProduct.name}</Badge>
+                      <span className="text-xs text-ink-300">
+                        {formatDate(f.date)} ・ {f.staff.name}
+                      </span>
+                    </div>
+                    <p className="mt-1.5 text-sm text-ink-500">
+                      {[f.amount, f.method].filter(Boolean).join(" ・ ") || "-"}
+                    </p>
+                  </>
+                }
+                editForm={
+                  <form
+                    action={updateFertilization.bind(null, cycle.id, f.id)}
+                    className="grid grid-cols-1 gap-3 sm:grid-cols-4"
+                  >
+                    <div>
+                      <Label required>施肥日</Label>
+                      <Input
+                        name="date"
+                        type="date"
+                        defaultValue={toDateInputValue(f.date)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label required>肥料</Label>
+                      <SelectOrOther
+                        name="fertilizerProductId"
+                        options={fertilizerProducts.map((p) => ({
+                          value: p.id,
+                          label: p.name,
+                        }))}
+                        defaultValue={f.fertilizerProductId}
+                        placeholder="肥料名を入力"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>施用量</Label>
+                      <Input
+                        name="amount"
+                        defaultValue={f.amount ?? ""}
+                        placeholder="例: 10kg/10a"
+                      />
+                    </div>
+                    <div>
+                      <Label>施用方法</Label>
+                      <SelectOrOther
+                        name="method"
+                        options={[
+                          { value: "元肥", label: "元肥" },
+                          { value: "追肥", label: "追肥" },
+                          { value: "液肥灌注", label: "液肥灌注" },
+                        ]}
+                        defaultValue={f.method ?? ""}
+                      />
+                    </div>
+                    <div className="sm:col-span-4">
+                      <Button type="submit" size="sm">
+                        更新する
+                      </Button>
+                    </div>
+                  </form>
+                }
+              />
             ))}
           </ul>
         )}
@@ -396,21 +503,74 @@ export default async function CultivationDetailPage({
         ) : (
           <ul className="flex flex-col gap-2">
             {cycle.pestDiseases.map((p) => (
-              <li key={p.id} className="rounded-xl border border-ink-100 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <Badge tone="strawberry">
-                    {p.type === "DISEASE" ? "病気" : "害虫"}: {p.name}
-                  </Badge>
-                  {p.severity && <Badge tone="neutral">{p.severity}</Badge>}
-                  <span className="text-xs text-ink-300">
-                    {formatDate(p.date)} ・ {p.staff.name}
-                  </span>
-                </div>
-                {p.action && (
-                  <p className="mt-1.5 text-sm text-ink-500">対応: {p.action}</p>
-                )}
-                <PhotoThumbs photos={p.photos} />
-              </li>
+              <RecordRow
+                key={p.id}
+                summary={
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Badge tone="strawberry">
+                        {p.type === "DISEASE" ? "病気" : "害虫"}: {p.name}
+                      </Badge>
+                      {p.severity && <Badge tone="neutral">{p.severity}</Badge>}
+                      <span className="text-xs text-ink-300">
+                        {formatDate(p.date)} ・ {p.staff.name}
+                      </span>
+                    </div>
+                    {p.action && (
+                      <p className="mt-1.5 text-sm text-ink-500">対応: {p.action}</p>
+                    )}
+                    <PhotoThumbs photos={p.photos} />
+                  </>
+                }
+                editForm={
+                  <form
+                    action={updatePestDisease.bind(null, cycle.id, p.id)}
+                    className="grid grid-cols-1 gap-3 sm:grid-cols-3"
+                  >
+                    <div>
+                      <Label required>発生日</Label>
+                      <Input
+                        name="date"
+                        type="date"
+                        defaultValue={toDateInputValue(p.date)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label required>種別</Label>
+                      <Select name="type" required defaultValue={p.type}>
+                        <option value="DISEASE">病気</option>
+                        <option value="PEST">害虫</option>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label required>病害虫名</Label>
+                      <Input name="name" defaultValue={p.name} required />
+                    </div>
+                    <div>
+                      <Label>発生程度</Label>
+                      <SelectOrOther
+                        name="severity"
+                        options={[
+                          { value: "軽微", label: "軽微" },
+                          { value: "中程度", label: "中程度" },
+                          { value: "重度", label: "重度" },
+                        ]}
+                        defaultValue={p.severity ?? ""}
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label>対応内容</Label>
+                      <Input name="action" defaultValue={p.action ?? ""} placeholder="任意" />
+                    </div>
+                    <div className="sm:col-span-3">
+                      <Button type="submit" size="sm">
+                        更新する
+                      </Button>
+                    </div>
+                  </form>
+                }
+              />
             ))}
           </ul>
         )}
@@ -464,18 +624,80 @@ export default async function CultivationDetailPage({
         ) : (
           <ul className="flex flex-col gap-2">
             {cycle.pesticides.map((p) => (
-              <li key={p.id} className="rounded-xl border border-ink-100 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <Badge tone="leaf">{p.pesticideProduct.name}</Badge>
-                  <span className="text-xs text-ink-300">
-                    {formatDate(p.date)} ・ {p.staff.name}
-                  </span>
-                </div>
-                <p className="mt-1.5 text-sm text-ink-500">
-                  {[p.dilution, p.amount, p.targetPest].filter(Boolean).join(" ・ ") ||
-                    "-"}
-                </p>
-              </li>
+              <RecordRow
+                key={p.id}
+                summary={
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Badge tone="leaf">{p.pesticideProduct.name}</Badge>
+                      <span className="text-xs text-ink-300">
+                        {formatDate(p.date)} ・ {p.staff.name}
+                      </span>
+                    </div>
+                    <p className="mt-1.5 text-sm text-ink-500">
+                      {[p.dilution, p.amount, p.targetPest].filter(Boolean).join(" ・ ") ||
+                        "-"}
+                    </p>
+                  </>
+                }
+                editForm={
+                  <form
+                    action={updatePesticideApplication.bind(null, cycle.id, p.id)}
+                    className="grid grid-cols-1 gap-3 sm:grid-cols-3"
+                  >
+                    <div>
+                      <Label required>散布日</Label>
+                      <Input
+                        name="date"
+                        type="date"
+                        defaultValue={toDateInputValue(p.date)}
+                        required
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label required>農薬</Label>
+                      <SelectOrOther
+                        name="pesticideProductId"
+                        options={pesticideProducts.map((pp) => ({
+                          value: pp.id,
+                          label:
+                            pp.phiDays != null
+                              ? `${pp.name}(収穫前${pp.phiDays}日)`
+                              : pp.name,
+                        }))}
+                        defaultValue={p.pesticideProductId}
+                        placeholder="農薬名を入力"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>希釈倍率</Label>
+                      <Input
+                        name="dilution"
+                        defaultValue={p.dilution ?? ""}
+                        placeholder="例: 1000倍"
+                      />
+                    </div>
+                    <div>
+                      <Label>散布量</Label>
+                      <Input
+                        name="amount"
+                        defaultValue={p.amount ?? ""}
+                        placeholder="例: 200L"
+                      />
+                    </div>
+                    <div>
+                      <Label>対象病害虫</Label>
+                      <Input name="targetPest" defaultValue={p.targetPest ?? ""} />
+                    </div>
+                    <div className="sm:col-span-3">
+                      <Button type="submit" size="sm">
+                        更新する
+                      </Button>
+                    </div>
+                  </form>
+                }
+              />
             ))}
           </ul>
         )}
@@ -525,19 +747,79 @@ export default async function CultivationDetailPage({
         ) : (
           <ul className="flex flex-col gap-2">
             {cycle.harvestRecords.map((h) => (
-              <li key={h.id} className="rounded-xl border border-ink-100 px-4 py-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge tone="strawberry">{formatNumber(h.amountKg, "kg")}</Badge>
-                  {h.grade && <Badge tone="neutral">等級: {h.grade}</Badge>}
-                  {h.brixLevel != null && (
-                    <Badge tone="leaf">{h.brixLevel} Brix</Badge>
-                  )}
-                  <span className="text-xs text-ink-300">
-                    {formatDate(h.date)} ・ {h.staff.name}
-                  </span>
-                </div>
-                <PhotoThumbs photos={h.photos} />
-              </li>
+              <RecordRow
+                key={h.id}
+                summary={
+                  <>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge tone="strawberry">{formatNumber(h.amountKg, "kg")}</Badge>
+                      {h.grade && <Badge tone="neutral">等級: {h.grade}</Badge>}
+                      {h.brixLevel != null && (
+                        <Badge tone="leaf">{h.brixLevel} Brix</Badge>
+                      )}
+                      <span className="text-xs text-ink-300">
+                        {formatDate(h.date)} ・ {h.staff.name}
+                      </span>
+                    </div>
+                    <PhotoThumbs photos={h.photos} />
+                  </>
+                }
+                editForm={
+                  <form
+                    action={updateHarvestRecord.bind(null, cycle.id, h.id)}
+                    className="grid grid-cols-1 gap-3 sm:grid-cols-4"
+                  >
+                    <div>
+                      <Label required>収穫日</Label>
+                      <Input
+                        name="date"
+                        type="date"
+                        defaultValue={toDateInputValue(h.date)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label required>収穫量(kg)</Label>
+                      <Input
+                        name="amountKg"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        defaultValue={h.amountKg}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>等級</Label>
+                      <SelectOrOther
+                        name="grade"
+                        options={[
+                          { value: "秀", label: "秀" },
+                          { value: "優", label: "優" },
+                          { value: "良", label: "良" },
+                          { value: "規格外", label: "規格外" },
+                        ]}
+                        defaultValue={h.grade ?? ""}
+                      />
+                    </div>
+                    <div>
+                      <Label>糖度(Brix)</Label>
+                      <Input
+                        name="brixLevel"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        defaultValue={h.brixLevel ?? ""}
+                      />
+                    </div>
+                    <div className="sm:col-span-4">
+                      <Button type="submit" size="sm">
+                        更新する
+                      </Button>
+                    </div>
+                  </form>
+                }
+              />
             ))}
           </ul>
         )}
@@ -599,19 +881,97 @@ export default async function CultivationDetailPage({
         ) : (
           <ul className="flex flex-col gap-2">
             {cycle.salesRecords.map((s) => (
-              <li key={s.id} className="rounded-xl border border-ink-100 px-4 py-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge tone="strawberry">{s.destination.name}</Badge>
-                  <span className="text-sm font-bold text-ink-500">
-                    {formatCurrency(s.totalAmount)}
-                  </span>
-                  <span className="text-xs text-ink-300">
-                    ({formatNumber(s.quantityKg, "kg")} × {formatCurrency(s.unitPrice)})
-                  </span>
-                  {s.lotNumber && <Badge tone="neutral">ロット: {s.lotNumber}</Badge>}
-                  <span className="text-xs text-ink-300">{formatDate(s.date)}</span>
-                </div>
-              </li>
+              <RecordRow
+                key={s.id}
+                summary={
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge tone="strawberry">{s.destination.name}</Badge>
+                    <span className="text-sm font-bold text-ink-500">
+                      {formatCurrency(s.totalAmount)}
+                    </span>
+                    <span className="text-xs text-ink-300">
+                      ({formatNumber(s.quantityKg, "kg")} × {formatCurrency(s.unitPrice)})
+                    </span>
+                    {s.lotNumber && <Badge tone="neutral">ロット: {s.lotNumber}</Badge>}
+                    <span className="text-xs text-ink-300">{formatDate(s.date)}</span>
+                  </div>
+                }
+                editForm={
+                  <form
+                    action={updateSalesRecord.bind(null, cycle.id, s.id)}
+                    className="grid grid-cols-1 gap-3 sm:grid-cols-3"
+                  >
+                    <div>
+                      <Label required>販売日</Label>
+                      <Input
+                        name="date"
+                        type="date"
+                        defaultValue={toDateInputValue(s.date)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label required>販売先</Label>
+                      <SelectOrOther
+                        name="destinationId"
+                        options={destinations.map((d) => ({ value: d.id, label: d.name }))}
+                        defaultValue={s.destinationId}
+                        placeholder="販売先を入力"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>紐づく収穫記録</Label>
+                      <Select
+                        name="harvestRecordId"
+                        defaultValue={s.harvestRecordId ?? ""}
+                      >
+                        <option value="">指定なし</option>
+                        {cycle.harvestRecords.map((h) => (
+                          <option key={h.id} value={h.id}>
+                            {formatDate(h.date)} ・ {formatNumber(h.amountKg, "kg")}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div>
+                      <Label required>数量(kg)</Label>
+                      <Input
+                        name="quantityKg"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        defaultValue={s.quantityKg}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label required>単価(円/kg)</Label>
+                      <Input
+                        name="unitPrice"
+                        type="number"
+                        step="1"
+                        min="0"
+                        defaultValue={s.unitPrice}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>出荷ロット番号</Label>
+                      <Input
+                        name="lotNumber"
+                        defaultValue={s.lotNumber ?? ""}
+                        placeholder="トレーサビリティ用"
+                      />
+                    </div>
+                    <div className="sm:col-span-3">
+                      <Button type="submit" size="sm">
+                        更新する
+                      </Button>
+                    </div>
+                  </form>
+                }
+              />
             ))}
           </ul>
         )}
@@ -658,16 +1018,64 @@ export default async function CultivationDetailPage({
         ) : (
           <ul className="flex flex-col gap-2">
             {cycle.costRecords.map((c) => (
-              <li key={c.id} className="rounded-xl border border-ink-100 px-4 py-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge tone="neutral">{costCategoryLabel[c.category]}</Badge>
-                  <span className="text-sm font-medium text-ink-500">{c.item}</span>
-                  <span className="text-sm font-bold text-strawberry-600">
-                    {formatCurrency(c.amount)}
-                  </span>
-                  <span className="text-xs text-ink-300">{formatDate(c.date)}</span>
-                </div>
-              </li>
+              <RecordRow
+                key={c.id}
+                summary={
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge tone="neutral">{costCategoryLabel[c.category]}</Badge>
+                    <span className="text-sm font-medium text-ink-500">{c.item}</span>
+                    <span className="text-sm font-bold text-strawberry-600">
+                      {formatCurrency(c.amount)}
+                    </span>
+                    <span className="text-xs text-ink-300">{formatDate(c.date)}</span>
+                  </div>
+                }
+                editForm={
+                  <form
+                    action={updateCostRecord.bind(null, cycle.id, c.id)}
+                    className="grid grid-cols-1 gap-3 sm:grid-cols-4"
+                  >
+                    <div>
+                      <Label required>日付</Label>
+                      <Input
+                        name="date"
+                        type="date"
+                        defaultValue={toDateInputValue(c.date)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label required>費目区分</Label>
+                      <Select name="category" required defaultValue={c.category}>
+                        <option value="MATERIAL">資材費</option>
+                        <option value="LABOR">人件費</option>
+                        <option value="UTILITY">光熱費</option>
+                        <option value="OTHER">その他</option>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label required>費目名</Label>
+                      <Input name="item" defaultValue={c.item} required />
+                    </div>
+                    <div>
+                      <Label required>金額(円)</Label>
+                      <Input
+                        name="amount"
+                        type="number"
+                        step="1"
+                        min="0"
+                        defaultValue={c.amount}
+                        required
+                      />
+                    </div>
+                    <div className="sm:col-span-4">
+                      <Button type="submit" size="sm">
+                        更新する
+                      </Button>
+                    </div>
+                  </form>
+                }
+              />
             ))}
           </ul>
         )}
@@ -762,6 +1170,30 @@ function RecordSection({
         {children}
       </Card>
     </section>
+  );
+}
+
+function RecordRow({
+  summary,
+  editForm,
+}: {
+  summary: React.ReactNode;
+  editForm: React.ReactNode;
+}) {
+  return (
+    <li className="rounded-xl border border-ink-100">
+      <details className="group">
+        <summary className="flex cursor-pointer items-center justify-between gap-3 px-4 py-3 select-none">
+          <div className="min-w-0 flex-1">{summary}</div>
+          <span className="shrink-0 rounded-full border border-ink-200 px-2.5 py-1 text-xs font-medium text-ink-400 group-open:border-strawberry-200 group-open:text-strawberry-500">
+            編集
+          </span>
+        </summary>
+        <div className="border-t border-ink-100 bg-cream-50 px-4 py-3">
+          {editForm}
+        </div>
+      </details>
+    </li>
   );
 }
 
