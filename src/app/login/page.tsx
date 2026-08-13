@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { signIn } from "@/lib/auth";
@@ -77,6 +78,13 @@ export default async function LoginPage({
             ログイン
           </Button>
         </form>
+        <Image
+          src="/logo.png"
+          alt="いちご名人"
+          width={128}
+          height={172}
+          className="mx-auto mt-8 h-24 w-auto"
+        />
       </div>
     </div>
   );
