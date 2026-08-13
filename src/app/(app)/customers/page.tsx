@@ -6,12 +6,29 @@ import { LinkButton } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Table, Thead, Tr, Th, Td } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/Badge";
+import { CustomerSearchInput } from "@/components/customers/CustomerSearchInput";
 
-export default async function CustomersPage() {
+export default async function CustomersPage({
+  searchParams,
+}: PageProps<"/customers">) {
   await requireUser();
+  const params = await searchParams;
+  const q = typeof params.q === "string" ? params.q.trim() : "";
+
+  const totalCount = await prisma.customer.count({ where: { isActive: true } });
 
   const customers = await prisma.customer.findMany({
-    where: { isActive: true },
+    where: {
+      isActive: true,
+      ...(q
+        ? {
+            OR: [
+              { name: { contains: q, mode: "insensitive" } },
+              { address: { contains: q, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
     orderBy: { createdAt: "desc" },
     include: {
       _count: { select: { cultivationCycles: true, visitRecords: true } },
@@ -22,13 +39,21 @@ export default async function CustomersPage() {
     <div>
       <PageHeader
         title="お客様"
-        description={`登録件数: ${customers.length}件`}
+        description={
+          q
+            ? `「${q}」の検索結果: ${customers.length}件`
+            : `登録件数: ${totalCount}件`
+        }
         action={
           <LinkButton href="/customers/new">＋ お客様を登録</LinkButton>
         }
       />
 
-      {customers.length === 0 ? (
+      <div className="mb-4">
+        <CustomerSearchInput />
+      </div>
+
+      {totalCount === 0 ? (
         <EmptyState
           title="お客様がまだ登録されていません"
           description="最初のお客様を登録しましょう"
@@ -37,6 +62,11 @@ export default async function CustomersPage() {
               お客様を登録
             </LinkButton>
           }
+        />
+      ) : customers.length === 0 ? (
+        <EmptyState
+          title="該当するお客様が見つかりませんでした"
+          description="お客様名または住所で再度検索してみてください"
         />
       ) : (
         <Card className="p-0">
